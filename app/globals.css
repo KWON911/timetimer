@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* 휴대폰 가로 모드처럼 세로 공간이 부족할 때 제목/버튼을 압축해
+   원형 다이얼이 앉을 공간을 더 확보한다. */
+@custom-variant short-landscape (@media (max-height: 500px) and (orientation: landscape));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

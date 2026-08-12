@@ -28,8 +28,8 @@ export function BottomControls({
   onOpenAlarmSettings,
 }: BottomControlsProps) {
   return (
-    <div className="mx-auto flex w-full max-w-lg items-center justify-between px-[30px] pb-[25px]">
-      <div className="flex h-[46px] items-center gap-[14px] rounded-full bg-white px-[17px] font-semibold text-black shadow-[0_2px_6px_rgba(0,0,0,0.13)]">
+    <div className="mx-auto flex w-full max-w-lg items-center justify-between px-[30px] pb-[25px] short-landscape:pb-[8px]">
+      <div className="flex h-[46px] items-center gap-[14px] rounded-full bg-white px-[17px] font-semibold text-black shadow-[0_2px_6px_rgba(0,0,0,0.13)] short-landscape:h-[32px] short-landscape:gap-[10px] short-landscape:px-[12px]">
         <button
           type="button"
           onClick={() => onChangeMinutes(-1)}

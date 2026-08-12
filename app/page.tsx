@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTimerEngine } from "@/lib/useTimerEngine";
 import { AlarmPlayer } from "@/lib/alarmPlayer";
 import { TopBar } from "@/components/TopBar";
@@ -21,6 +21,44 @@ let previewPlayer: AlarmPlayer | null = null;
 function getPreviewPlayer() {
   if (!previewPlayer) previewPlayer = new AlarmPlayer();
   return previewPlayer;
+}
+
+// 남는 세로/가로 공간 중 더 작은 쪽에 맞춰 정사각형 다이얼 크기를 계산.
+// 세로 모드처럼 높이가 넉넉한 경우와 가로 모드처럼 높이가 부족한 경우 모두
+// 고정 수치 없이 실제 레이아웃 결과로 정확히 대응한다.
+function useSquareFit() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setSize(Math.max(0, Math.min(rect.width, rect.height)));
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+
+    // 백그라운드로 전환됐다 돌아오는 경우 등, 숨겨진 동안 놓친 레이아웃
+    // 변화를 다시 화면에 보일 때 한 번 더 확인한다.
+    document.addEventListener("visibilitychange", measure);
+    window.addEventListener("orientationchange", measure);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", measure);
+      window.removeEventListener("orientationchange", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  return [ref, size] as const;
 }
 
 export default function Home() {
@@ -44,43 +82,48 @@ export default function Home() {
   const [showAddTimer, setShowAddTimer] = useState(false);
   const [showAlarmSettings, setShowAlarmSettings] = useState(false);
 
+  const [squareBoxRef, squareSize] = useSquareFit();
+
   if (!currentTimer) {
     return null;
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <TopBar
         onOpenList={() => setShowTimerList(true)}
         onAddTimer={() => setShowAddTimer(true)}
       />
 
-      <div className="flex flex-1 items-center justify-center px-4">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 py-1">
+        <h1 className="w-full max-w-[1100px] shrink-0 truncate text-center text-4xl font-semibold leading-none text-black sm:text-6xl lg:text-7xl short-landscape:text-2xl short-landscape:sm:text-2xl">
+          {currentTimer.name}
+        </h1>
+
         <div
-          className="relative aspect-square"
-          style={{
-            width: "min(96vw, calc(100dvh - 21.5rem), 1100px)",
-          }}
+          ref={squareBoxRef}
+          className="min-h-0 w-full max-w-[1100px] flex-1"
         >
-          <h1 className="absolute bottom-full left-1/2 max-w-full -translate-x-1/2 truncate pb-1 text-4xl font-semibold leading-none text-black sm:text-6xl lg:text-7xl">
-            {currentTimer.name}
-          </h1>
-
-          <VisualTimer
-            remainingSeconds={currentTimer.remainingSeconds}
-            color={currentTimer.color}
-            isLocked={currentTimer.isLocked}
-            isRunning={isRunning}
-            onMinutesChanged={setMinutes}
-          />
-
-          <div className="absolute left-1/2 top-full -translate-x-1/2 pt-1">
-            <PlayTimeButton
+          <div
+            className="relative mx-auto"
+            style={{ width: squareSize, height: squareSize }}
+          >
+            <VisualTimer
+              remainingSeconds={currentTimer.remainingSeconds}
+              color={currentTimer.color}
+              isLocked={currentTimer.isLocked}
               isRunning={isRunning}
-              remainingLabel={formatTime(currentTimer.remainingSeconds)}
-              onToggle={toggleTimer}
+              onMinutesChanged={setMinutes}
             />
           </div>
+        </div>
+
+        <div className="shrink-0">
+          <PlayTimeButton
+            isRunning={isRunning}
+            remainingLabel={formatTime(currentTimer.remainingSeconds)}
+            onToggle={toggleTimer}
+          />
         </div>
       </div>
 
