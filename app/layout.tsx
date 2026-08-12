@@ -12,6 +12,11 @@ const pretendard = localFont({
 export const metadata: Metadata = {
   title: "타이머",
   description: "원형 다이얼 타이머",
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "256x256", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
