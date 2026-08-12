@@ -46,10 +46,24 @@ export class AlarmPlayer {
     }
 
     if (this.context.state === "suspended") {
-      void this.context.resume();
+      this.context.resume().catch(() => {
+        // Resume failed, user gesture required on iOS
+      });
     }
 
     return this.context;
+  }
+
+  initializeAudio() {
+    // Initialize AudioContext on user interaction for iOS compatibility
+    try {
+      const context = this.getContext();
+      if (context.state === "suspended") {
+        context.resume();
+      }
+    } catch {
+      // Silent fail
+    }
   }
 
   private makeBuffer(sound: AlarmSound): AudioBuffer {

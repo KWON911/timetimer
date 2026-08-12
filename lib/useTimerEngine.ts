@@ -155,6 +155,10 @@ export function useTimerEngine() {
   const startTimer = useCallback(() => {
     if (!currentTimer || currentTimer.remainingSeconds <= 0) return;
 
+    // iOS Safari suspends AudioContext until a user gesture unlocks it;
+    // unlock here (inside the tap handler) so the later alarm playback
+    // triggered by setInterval — with no gesture of its own — can still play.
+    alarmPlayerRef.current?.initializeAudio();
     alarmPlayerRef.current?.stop();
     targetEndDateRef.current = Date.now() + currentTimer.remainingSeconds * 1000;
     setIsRunning(true);
