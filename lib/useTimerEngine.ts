@@ -9,6 +9,7 @@ import {
   saveTimers,
 } from "./storage";
 import { AlarmPlayer } from "./alarmPlayer";
+import { ScreenWakeLock } from "./wakeLock";
 
 const DEFAULT_TIMERS: KTimerItem[] = [
   createTimer({ name: "30분 타이머", durationMinutes: 30, color: "red" }, "default-timer"),
@@ -32,6 +33,9 @@ export function useTimerEngine() {
     typeof window !== "undefined" ? new AlarmPlayer() : null
   );
   const alarmPlayerRef = useRef(alarmPlayer);
+
+  const [wakeLock] = useState(() => new ScreenWakeLock());
+  const wakeLockRef = useRef(wakeLock);
 
   // 초기 로드 (localStorage는 클라이언트에서만 접근 가능하므로 마운트 후 동기화)
   useEffect(() => {
@@ -99,6 +103,7 @@ export function useTimerEngine() {
     });
 
     alarmPlayerRef.current?.stopKeepAlive();
+    wakeLockRef.current.release();
 
     const finished = timersRef.current.find(
       (t) => t.id === (selectedTimerId ?? timersRef.current[0]?.id)
@@ -154,6 +159,19 @@ export function useTimerEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, synchronize]);
 
+  // Wake Lock은 브라우저가 탭을 백그라운드로 보낼 때 자체적으로 해제해버린다.
+  // 타이머가 계속 도는 상태로 다시 화면에 돌아오면 재요청한다.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && isRunning) {
+        void wakeLockRef.current.request();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [isRunning]);
+
   const startTimer = useCallback(() => {
     if (!currentTimer || currentTimer.remainingSeconds <= 0) return;
 
@@ -163,6 +181,7 @@ export function useTimerEngine() {
     alarmPlayerRef.current?.initializeAudio();
     alarmPlayerRef.current?.stop();
     alarmPlayerRef.current?.startKeepAlive();
+    void wakeLockRef.current.request();
     targetEndDateRef.current = Date.now() + currentTimer.remainingSeconds * 1000;
     setIsRunning(true);
   }, [currentTimer]);
@@ -170,6 +189,7 @@ export function useTimerEngine() {
   const pauseTimer = useCallback(() => {
     synchronize();
     alarmPlayerRef.current?.stopKeepAlive();
+    wakeLockRef.current.release();
     targetEndDateRef.current = null;
     setIsRunning(false);
   }, [synchronize]);
@@ -186,6 +206,7 @@ export function useTimerEngine() {
     invalidateInterval();
     alarmPlayerRef.current?.stop();
     alarmPlayerRef.current?.stopKeepAlive();
+    wakeLockRef.current.release();
     targetEndDateRef.current = null;
     setIsRunning(false);
 
@@ -197,6 +218,7 @@ export function useTimerEngine() {
     invalidateInterval();
     alarmPlayerRef.current?.stop();
     alarmPlayerRef.current?.stopKeepAlive();
+    wakeLockRef.current.release();
     targetEndDateRef.current = null;
     setIsRunning(false);
   }, [isRunning, synchronize, invalidateInterval]);
