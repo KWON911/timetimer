@@ -98,6 +98,8 @@ export function useTimerEngine() {
       return next;
     });
 
+    alarmPlayerRef.current?.stopKeepAlive();
+
     const finished = timersRef.current.find(
       (t) => t.id === (selectedTimerId ?? timersRef.current[0]?.id)
     );
@@ -160,12 +162,14 @@ export function useTimerEngine() {
     // triggered by setInterval — with no gesture of its own — can still play.
     alarmPlayerRef.current?.initializeAudio();
     alarmPlayerRef.current?.stop();
+    alarmPlayerRef.current?.startKeepAlive();
     targetEndDateRef.current = Date.now() + currentTimer.remainingSeconds * 1000;
     setIsRunning(true);
   }, [currentTimer]);
 
   const pauseTimer = useCallback(() => {
     synchronize();
+    alarmPlayerRef.current?.stopKeepAlive();
     targetEndDateRef.current = null;
     setIsRunning(false);
   }, [synchronize]);
@@ -181,6 +185,7 @@ export function useTimerEngine() {
   const resetTimer = useCallback(() => {
     invalidateInterval();
     alarmPlayerRef.current?.stop();
+    alarmPlayerRef.current?.stopKeepAlive();
     targetEndDateRef.current = null;
     setIsRunning(false);
 
@@ -191,6 +196,7 @@ export function useTimerEngine() {
     if (isRunning) synchronize();
     invalidateInterval();
     alarmPlayerRef.current?.stop();
+    alarmPlayerRef.current?.stopKeepAlive();
     targetEndDateRef.current = null;
     setIsRunning(false);
   }, [isRunning, synchronize, invalidateInterval]);

@@ -23,26 +23,39 @@ function getPreviewPlayer() {
   return previewPlayer;
 }
 
+// 다이얼과 재생 버튼 사이의 고정 간격. 두 요소를 한 덩어리로 묶어
+// 남는 공간 안에서 함께 중앙 정렬되도록 크기 계산에도 반영한다.
+const DIAL_GROUP_GAP = 20;
+
 // 남는 세로/가로 공간 중 더 작은 쪽에 맞춰 정사각형 다이얼 크기를 계산.
-// 세로 모드처럼 높이가 넉넉한 경우와 가로 모드처럼 높이가 부족한 경우 모두
+// 재생 버튼이 박스 안에 함께 들어있는 경우, 버튼이 차지하는 높이만큼
+// 미리 빼서 다이얼+버튼 세트가 항상 박스 안에 딱 들어맞게 한다.
 // 고정 수치 없이 실제 레이아웃 결과로 정확히 대응한다.
 function useSquareFit() {
-  const ref = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const box = boxRef.current;
+    const button = buttonRef.current;
+    if (!box || !button) return;
 
     const measure = () => {
-      const rect = el.getBoundingClientRect();
-      setSize(Math.max(0, Math.min(rect.width, rect.height)));
+      const boxRect = box.getBoundingClientRect();
+      const isButtonVisible = getComputedStyle(button).display !== "none";
+      const reserved = isButtonVisible
+        ? button.getBoundingClientRect().height + DIAL_GROUP_GAP
+        : 0;
+
+      setSize(Math.max(0, Math.min(boxRect.width, boxRect.height - reserved)));
     };
 
     measure();
 
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
+    observer.observe(box);
+    observer.observe(button);
 
     // 백그라운드로 전환됐다 돌아오는 경우 등, 숨겨진 동안 놓친 레이아웃
     // 변화를 다시 화면에 보일 때 한 번 더 확인한다.
@@ -58,7 +71,7 @@ function useSquareFit() {
     };
   }, []);
 
-  return [ref, size] as const;
+  return [boxRef, buttonRef, size] as const;
 }
 
 export default function Home() {
@@ -82,7 +95,7 @@ export default function Home() {
   const [showAddTimer, setShowAddTimer] = useState(false);
   const [showAlarmSettings, setShowAlarmSettings] = useState(false);
 
-  const [squareBoxRef, squareSize] = useSquareFit();
+  const [squareBoxRef, playButtonRef, squareSize] = useSquareFit();
 
   if (!currentTimer) {
     return null;
@@ -91,21 +104,29 @@ export default function Home() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <TopBar
+        timerName={currentTimer.name}
         onOpenList={() => setShowTimerList(true)}
         onAddTimer={() => setShowAddTimer(true)}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 py-1">
-        <h1 className="w-full max-w-[1100px] shrink-0 truncate text-center text-4xl font-semibold leading-none text-black sm:text-6xl lg:text-7xl short-landscape:text-2xl short-landscape:sm:text-2xl">
-          {currentTimer.name}
-        </h1>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 py-1 short-landscape:flex-row short-landscape:items-stretch short-landscape:gap-3 short-landscape:px-3 short-landscape:py-2">
+        <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
+          <BottomControls
+            timer={currentTimer}
+            onChangeMinutes={changeMinutes}
+            onReset={resetTimer}
+            onToggleLock={toggleLock}
+            onOpenAlarmSettings={() => setShowAlarmSettings(true)}
+            layout="column"
+          />
+        </div>
 
         <div
           ref={squareBoxRef}
-          className="min-h-0 w-full max-w-[1100px] flex-1"
+          className="flex min-h-0 w-full max-w-[1100px] flex-1 flex-col items-center justify-center gap-5"
         >
           <div
-            className="relative mx-auto"
+            className="relative shrink-0"
             style={{ width: squareSize, height: squareSize }}
           >
             <VisualTimer
@@ -116,24 +137,35 @@ export default function Home() {
               onMinutesChanged={setMinutes}
             />
           </div>
+
+          <div ref={playButtonRef} className="shrink-0 short-landscape:hidden">
+            <PlayTimeButton
+              isRunning={isRunning}
+              remainingLabel={formatTime(currentTimer.remainingSeconds)}
+              onToggle={toggleTimer}
+            />
+          </div>
         </div>
 
-        <div className="shrink-0">
+        <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
           <PlayTimeButton
             isRunning={isRunning}
             remainingLabel={formatTime(currentTimer.remainingSeconds)}
             onToggle={toggleTimer}
+            layout="column"
           />
         </div>
       </div>
 
-      <BottomControls
-        timer={currentTimer}
-        onChangeMinutes={changeMinutes}
-        onReset={resetTimer}
-        onToggleLock={toggleLock}
-        onOpenAlarmSettings={() => setShowAlarmSettings(true)}
-      />
+      <div className="short-landscape:hidden">
+        <BottomControls
+          timer={currentTimer}
+          onChangeMinutes={changeMinutes}
+          onReset={resetTimer}
+          onToggleLock={toggleLock}
+          onOpenAlarmSettings={() => setShowAlarmSettings(true)}
+        />
+      </div>
 
       <TimerListSheet
         isOpen={showTimerList}

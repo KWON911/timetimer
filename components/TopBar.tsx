@@ -3,11 +3,12 @@
 import { MenuIcon, PlusIcon } from "./icons";
 
 interface TopBarProps {
+  timerName: string;
   onOpenList: () => void;
   onAddTimer: () => void;
 }
 
-export function TopBar({ onOpenList, onAddTimer }: TopBarProps) {
+export function TopBar({ timerName, onOpenList, onAddTimer }: TopBarProps) {
   return (
     <div className="relative flex items-center justify-between px-[30px] pt-[10px]">
       <button
@@ -19,8 +20,9 @@ export function TopBar({ onOpenList, onAddTimer }: TopBarProps) {
         <MenuIcon width={23} height={23} />
       </button>
 
-      <span className="pointer-events-none absolute inset-x-0 top-[10px] bottom-0 flex items-center justify-center text-sm text-black">
+      <span className="pointer-events-none absolute inset-x-0 top-[10px] bottom-0 flex items-center justify-center truncate px-16 text-sm text-black">
         TIME <span className="font-bold">TIMER</span>
+        <span className="truncate"> · {timerName}</span>
       </span>
 
       <button

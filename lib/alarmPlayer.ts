@@ -39,6 +39,8 @@ export class AlarmPlayer {
   private context: AudioContext | null = null;
   private timeouts: ReturnType<typeof setTimeout>[] = [];
   private activeSources: AudioBufferSourceNode[] = [];
+  private keepAliveOscillator: OscillatorNode | null = null;
+  private keepAliveGain: GainNode | null = null;
 
   private getContext(): AudioContext {
     if (!this.context) {
@@ -63,6 +65,49 @@ export class AlarmPlayer {
       }
     } catch {
       // Silent fail
+    }
+  }
+
+  // iOS Safari는 AudioContext에 실제로 소리가 흐르지 않는 상태가 이어지면
+  // 절전을 위해 몇십 초 뒤 컨텍스트를 다시 suspend 시킨다. 그 시점에 알람이
+  // 울리려 하면 사용자 제스처 없이(setInterval 콜백에서) resume해야 하는데
+  // 이게 iOS에서 잘 통하지 않는다. 카운트다운이 도는 동안 거의 무음에
+  // 가까운 오실레이터를 계속 재생시켜 컨텍스트가 idle로 빠지지 않게 붙잡아둔다.
+  startKeepAlive() {
+    try {
+      const context = this.getContext();
+      if (this.keepAliveOscillator) return;
+
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      gain.gain.value = 0.00001;
+      oscillator.frequency.value = 20;
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+
+      this.keepAliveOscillator = oscillator;
+      this.keepAliveGain = gain;
+    } catch {
+      // Silent fail
+    }
+  }
+
+  stopKeepAlive() {
+    if (this.keepAliveOscillator) {
+      try {
+        this.keepAliveOscillator.stop();
+      } catch {
+        // already stopped
+      }
+      this.keepAliveOscillator.disconnect();
+      this.keepAliveOscillator = null;
+    }
+
+    if (this.keepAliveGain) {
+      this.keepAliveGain.disconnect();
+      this.keepAliveGain = null;
     }
   }
 
