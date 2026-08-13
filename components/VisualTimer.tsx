@@ -15,6 +15,10 @@ const SIZE = 300;
 const VIEW_SIZE = 300; // 캔버스를 숫자가 겨우 들어갈 만큼만 여유를 둬 빈 여백을 최소화
 const CENTER = VIEW_SIZE / 2;
 const CIRCLE_RADIUS = SIZE * 0.37; // circleSize(0.74) / 2
+// 흰색 도형(경과 표시)을 빨간 원과 정확히 같은 반지름으로 겹치면
+// 안티앨리어싱 때문에 테두리에 빨간 이음새가 얇게 비친다.
+// 흰색 쪽만 살짝 더 크게 그려서 그 이음새를 가린다.
+const COVER_RADIUS = CIRCLE_RADIUS + 1;
 const MAJOR_TICK_LENGTH = SIZE * 0.0325; // 큰 눈금 길이 (기존의 절반)
 const MINOR_TICK_LENGTH = SIZE * 0.019; // 작은 눈금 길이 (기존의 절반)
 const TICK_OUTER_RADIUS = CIRCLE_RADIUS + MAJOR_TICK_LENGTH; // 큰 눈금 바깥쪽 끝 (원과 눈금 사이 간격 없음)
@@ -29,8 +33,8 @@ function elapsedPiePath(progress: number): string {
   if (safeProgress <= 0) return "";
 
   if (safeProgress >= 0.999999) {
-    return `M ${CENTER} ${CENTER - CIRCLE_RADIUS}
-            A ${CIRCLE_RADIUS} ${CIRCLE_RADIUS} 0 1 1 ${CENTER - 0.01} ${CENTER - CIRCLE_RADIUS}
+    return `M ${CENTER} ${CENTER - COVER_RADIUS}
+            A ${COVER_RADIUS} ${COVER_RADIUS} 0 1 1 ${CENTER - 0.01} ${CENTER - COVER_RADIUS}
             Z`;
   }
 
@@ -41,15 +45,15 @@ function elapsedPiePath(progress: number): string {
   const toXY = (deg: number) => {
     const rad = (deg * Math.PI) / 180;
     return [
-      round(CENTER + Math.cos(rad) * CIRCLE_RADIUS),
-      round(CENTER + Math.sin(rad) * CIRCLE_RADIUS),
+      round(CENTER + Math.cos(rad) * COVER_RADIUS),
+      round(CENTER + Math.sin(rad) * COVER_RADIUS),
     ];
   };
 
   const [sx, sy] = toXY(startDeg);
   const [ex, ey] = toXY(endDeg);
 
-  return `M ${CENTER} ${CENTER} L ${sx} ${sy} A ${CIRCLE_RADIUS} ${CIRCLE_RADIUS} 0 ${largeArc} 1 ${ex} ${ey} Z`;
+  return `M ${CENTER} ${CENTER} L ${sx} ${sy} A ${COVER_RADIUS} ${COVER_RADIUS} 0 ${largeArc} 1 ${ex} ${ey} Z`;
 }
 
 export function VisualTimer({
@@ -157,20 +161,26 @@ export function VisualTimer({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={CIRCLE_RADIUS}
-        fill="white"
-        style={{
-          filter:
-            "drop-shadow(0 3px 4px rgba(0,0,0,0.18)) drop-shadow(0 10px 18px rgba(0,0,0,0.14))",
-        }}
-      />
+      <defs>
+        <radialGradient
+          id="whiteAreaShadow"
+          cx={CENTER}
+          cy={CENTER}
+          r={COVER_RADIUS}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="88%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#eeeeee" />
+        </radialGradient>
+      </defs>
+
+      <circle cx={CENTER} cy={CENTER} r={COVER_RADIUS} fill="white" />
 
       <circle cx={CENTER} cy={CENTER} r={CIRCLE_RADIUS} fill={TIMER_COLOR_HEX[color]} />
 
-      {progress > 0 && <path d={elapsedPiePath(progress)} fill="white" />}
+      {progress > 0 && (
+        <path d={elapsedPiePath(progress)} fill="url(#whiteAreaShadow)" />
+      )}
 
       {ticks}
       {numbers}

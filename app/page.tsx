@@ -109,7 +109,7 @@ export default function Home() {
         onAddTimer={() => setShowAddTimer(true)}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 py-1 short-landscape:flex-row short-landscape:items-stretch short-landscape:gap-3 short-landscape:px-3 short-landscape:py-2">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 pt-1 pb-8 short-landscape:flex-row short-landscape:items-stretch short-landscape:gap-3 short-landscape:px-3 short-landscape:py-2">
         <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
           <BottomControls
             timer={currentTimer}
