@@ -80,6 +80,8 @@ export default function Home() {
     currentTimer,
     selectedTimerId,
     isRunning,
+    isAlarming,
+    dismissAlarm,
     toggleTimer,
     resetTimer,
     toggleLock,
@@ -109,62 +111,77 @@ export default function Home() {
         onAddTimer={() => setShowAddTimer(true)}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 pt-1 pb-8 short-landscape:flex-row short-landscape:items-stretch short-landscape:gap-3 short-landscape:px-3 short-landscape:py-2">
-        <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 pt-1 pb-8 short-landscape:flex-row short-landscape:items-stretch short-landscape:gap-3 short-landscape:px-3 short-landscape:py-2">
+          <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
+            <BottomControls
+              timer={currentTimer}
+              onChangeMinutes={changeMinutes}
+              onReset={resetTimer}
+              onToggleLock={toggleLock}
+              onOpenAlarmSettings={() => setShowAlarmSettings(true)}
+              layout="column"
+            />
+          </div>
+
+          <div
+            ref={squareBoxRef}
+            className="flex min-h-0 w-full max-w-[1100px] flex-1 flex-col items-center justify-center gap-5"
+          >
+            <div
+              className="relative shrink-0"
+              style={{ width: squareSize, height: squareSize }}
+            >
+              <VisualTimer
+                remainingSeconds={currentTimer.remainingSeconds}
+                color={currentTimer.color}
+                isLocked={currentTimer.isLocked}
+                isRunning={isRunning}
+                onMinutesChanged={setMinutes}
+              />
+            </div>
+
+            <div ref={playButtonRef} className="shrink-0 short-landscape:hidden">
+              <PlayTimeButton
+                isRunning={isRunning}
+                remainingLabel={formatTime(currentTimer.remainingSeconds)}
+                onToggle={toggleTimer}
+              />
+            </div>
+          </div>
+
+          <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
+            <PlayTimeButton
+              isRunning={isRunning}
+              remainingLabel={formatTime(currentTimer.remainingSeconds)}
+              onToggle={toggleTimer}
+              layout="column"
+            />
+          </div>
+        </div>
+
+        <div className="short-landscape:hidden">
           <BottomControls
             timer={currentTimer}
             onChangeMinutes={changeMinutes}
             onReset={resetTimer}
             onToggleLock={toggleLock}
             onOpenAlarmSettings={() => setShowAlarmSettings(true)}
-            layout="column"
           />
         </div>
 
-        <div
-          ref={squareBoxRef}
-          className="flex min-h-0 w-full max-w-[1100px] flex-1 flex-col items-center justify-center gap-5"
-        >
-          <div
-            className="relative shrink-0"
-            style={{ width: squareSize, height: squareSize }}
+        {isAlarming && (
+          <button
+            type="button"
+            onClick={dismissAlarm}
+            aria-label="알람 끄기"
+            className="absolute inset-0 z-20 flex items-center bg-transparent"
           >
-            <VisualTimer
-              remainingSeconds={currentTimer.remainingSeconds}
-              color={currentTimer.color}
-              isLocked={currentTimer.isLocked}
-              isRunning={isRunning}
-              onMinutesChanged={setMinutes}
-            />
-          </div>
-
-          <div ref={playButtonRef} className="shrink-0 short-landscape:hidden">
-            <PlayTimeButton
-              isRunning={isRunning}
-              remainingLabel={formatTime(currentTimer.remainingSeconds)}
-              onToggle={toggleTimer}
-            />
-          </div>
-        </div>
-
-        <div className="hidden shrink-0 short-landscape:flex short-landscape:flex-col short-landscape:items-center short-landscape:justify-center">
-          <PlayTimeButton
-            isRunning={isRunning}
-            remainingLabel={formatTime(currentTimer.remainingSeconds)}
-            onToggle={toggleTimer}
-            layout="column"
-          />
-        </div>
-      </div>
-
-      <div className="short-landscape:hidden">
-        <BottomControls
-          timer={currentTimer}
-          onChangeMinutes={changeMinutes}
-          onReset={resetTimer}
-          onToggleLock={toggleLock}
-          onOpenAlarmSettings={() => setShowAlarmSettings(true)}
-        />
+            <span className="w-full bg-white/90 py-[clamp(0.75rem,4vw,1.75rem)] text-center text-[clamp(1.75rem,8vw,3.5rem)] font-bold text-black shadow-[0_1px_4px_rgba(0,0,0,0.15)]">
+              시간 종료
+            </span>
+          </button>
+        )}
       </div>
 
       <TimerListSheet

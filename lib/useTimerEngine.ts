@@ -19,6 +19,7 @@ export function useTimerEngine() {
   const [timers, setTimers] = useState<KTimerItem[]>(DEFAULT_TIMERS);
   const [selectedTimerId, setSelectedTimerId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isAlarming, setIsAlarming] = useState(false);
 
   const targetEndDateRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,6 +105,7 @@ export function useTimerEngine() {
 
     alarmPlayerRef.current?.stopKeepAlive();
     wakeLockRef.current.release();
+    setIsAlarming(true);
 
     const finished = timersRef.current.find(
       (t) => t.id === (selectedTimerId ?? timersRef.current[0]?.id)
@@ -121,6 +123,13 @@ export function useTimerEngine() {
       }
     }
   }, [invalidateInterval, selectedTimerId]);
+
+  // 다이얼을 만지거나 버튼을 누르는 등 화면 아무 곳이나 조작하면
+  // "시간 종료" 배너를 닫고 알람 소리도 함께 멈춘다.
+  const dismissAlarm = useCallback(() => {
+    alarmPlayerRef.current?.stop();
+    setIsAlarming(false);
+  }, []);
 
   const synchronize = useCallback(() => {
     const endDate = targetEndDateRef.current;
@@ -209,6 +218,7 @@ export function useTimerEngine() {
     wakeLockRef.current.release();
     targetEndDateRef.current = null;
     setIsRunning(false);
+    setIsAlarming(false);
 
     updateCurrent((t) => ({ ...t, remainingSeconds: t.durationMinutes * 60 }));
   }, [invalidateInterval, updateCurrent]);
@@ -221,6 +231,7 @@ export function useTimerEngine() {
     wakeLockRef.current.release();
     targetEndDateRef.current = null;
     setIsRunning(false);
+    setIsAlarming(false);
   }, [isRunning, synchronize, invalidateInterval]);
 
   const toggleLock = useCallback(() => {
@@ -323,6 +334,8 @@ export function useTimerEngine() {
     currentTimer,
     selectedTimerId,
     isRunning,
+    isAlarming,
+    dismissAlarm,
     toggleTimer,
     resetTimer,
     toggleLock,
